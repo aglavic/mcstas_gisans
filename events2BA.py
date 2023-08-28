@@ -3,14 +3,16 @@ Load events from McStas to run a BornAgain simulation and create new neutron eve
 to feed back to McStas.
 """
 
+from importlib import import_module
+import sys
 from numpy import *
 
 import bornagain as ba
 from bornagain import deg, angstrom, nm
-from sample_model import get_sample
 
 EFILE = "GISANS_events/test_events.dat" # event file to be used
 OFILE = "test_events_scattered.dat" # event file to be written
+MFILE = "models.hexagonal_spheres"
 
 BINS=10 # number of pixels in x and y direction of the "detector"
 ANGLE_RANGE=3 # degree scattering angle covered by detector
@@ -58,7 +60,7 @@ def run_events(events):
     total = len(events)
     out_events = []
     for in_ID, neutron in enumerate(events):
-        if in_ID%10==0:
+        if in_ID%200==0:
             print(f'{in_ID:10}/{total}')
         p, x, y, z, vx, vy, vz, t, sx, sy, sz = neutron
         alpha_i = arctan(vz/vy)*180./pi  # deg
@@ -87,6 +89,7 @@ def run_events(events):
             Ry =  2*random.random()-1
             Rz =  2*random.random()-1
             sim = get_simulation(sample, wavelength, alpha_i, p, Ry, Rz)
+            sim.options().setUseAvgMaterials(True)
             res = sim.simulate()
             # get probability (intensity) for all pixels
             pout = res.array()
@@ -115,7 +118,12 @@ def main():
     events = loadtxt(EFILE)
     events = prop0(events)
 
-    print('Running BornAgain simulations for each event...')
+    if len(sys.argv)>1:
+        MFILE='models.'+sys.argv[1]
+    print(f'Running BornAgain simulations "{MFILE}" for each event...')
+    global get_sample
+    sim_module=import_module(MFILE)
+    get_sample=sim_module.get_sample
     out_events = run_events(events)
     print(f'Writing events to {OFILE}...')
     write_events(out_events)

@@ -16,7 +16,6 @@ lattice_c = 3/2*sqrt(3)*lattice_a
 
 def get_sample(phi=0.):
     """
-    Standard sample model: dilute random assembly of cylinders on a substrate.
     """
     phi = phi+0.
     # Define materials
