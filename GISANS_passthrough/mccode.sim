@@ -1,0 +1,46 @@
+McStas simulation description file for GISANS_test.
+Date:    Tue Jun  6 10:20:07 2023
+Program: 
+
+begin instrument: GISANS_test
+  File: GISANS_passthrough/mccode
+  Source: GISANS_events_back.instr
+  Parameters: 
+  Trace_enabled: no
+  Default_main: yes
+  Embedded_runtime: yes
+end instrument
+
+begin simulation: GISANS_passthrough
+  Format: McCode with text headers
+  URL: http://www.mccode.org
+  Creator: 
+  Instrument: GISANS_events_back.instr
+  Ncount: 1000000
+  Trace: no
+  Gravitation: no
+  Seed: 1686039607966237
+  Directory: GISANS_passthrough
+end simulation
+
+begin data
+  Date: Tue Jun  6 10:20:08 2023 (1686039608)
+  type: array_2d(256, 256)
+  Source: GISANS_test (GISANS_events_back.instr)
+  component: DETfin
+  position: 0 0 110
+  title: PSD monitor
+  Ncount: 1099999
+  filename: PSDfin.txt
+  statistics: X0=-0.000144657; dX=0.355785; Y0=1.51154e-05; dY=0.195312;
+  signal: Min=0; Max=177.776; Mean=0.0152445;
+  values: 999.063 3.16127 99999
+  xvar: X 
+  yvar: Y 
+  xlabel: X position [cm]
+  ylabel: Y position [cm]
+  zvar: I
+  zlabel: Signal per bin
+  xylimits: -50 50 -50 50
+  variables: I I_err N
+end data

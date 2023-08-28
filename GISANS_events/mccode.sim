@@ -1,0 +1,68 @@
+McStas simulation description file for GISANS_test.
+Date:    Wed Jun  7 16:17:40 2023
+Program: 
+
+begin instrument: GISANS_test
+  File: GISANS_events/mccode
+  Source: GISANS_events.instr
+  Parameters: 
+  Trace_enabled: no
+  Default_main: yes
+  Embedded_runtime: yes
+end instrument
+
+begin simulation: GISANS_events
+  Format: McCode with text headers
+  URL: http://www.mccode.org
+  Creator: 
+  Instrument: GISANS_events.instr
+  Ncount: 10000
+  Trace: no
+  Gravitation: no
+  Seed: 1686147460866020
+  Directory: GISANS_events
+end simulation
+
+begin data
+  Date: Wed Jun  7 16:17:40 2023 (1686147460)
+  type: array_2d(11, 9999)
+  Source: GISANS_test (GISANS_events.instr)
+  component: sample_out
+  position: 0 0 100.077
+  title:  Intensity Position Position Position Velocity Velocity Velocity Time_Of_Flight Spin Spin Spin Monitor (Square)
+  Ncount: 20000
+  filename: test_events.dat
+  statistics: X0=0; dX=0; Y0=0; dY=0;
+  signal: Min=0.103387; Max=0.103387; Mean=0;
+  values: 0 0 0
+  xvar: Li
+  yvar: p 
+  xlabel: List of neutron events
+  ylabel: p x y z vx vy vz t sx sy sz 
+  zvar: I
+  zlabel: Signal per bin
+  xylimits: 1 9999 1 11
+  variables: p x y z vx vy vz t sx sy sz 
+end data
+
+begin data
+  Date: Wed Jun  7 16:17:40 2023 (1686147460)
+  type: array_2d(256, 256)
+  Source: GISANS_test (GISANS_events.instr)
+  component: DETfin
+  position: 0 0 110
+  title: PSD monitor
+  Ncount: 20000
+  filename: PSDfin.txt
+  statistics: X0=-0.00172481; dX=0.353681; Y0=-0.000271961; dY=0.195312;
+  signal: Min=0; Max=184.06; Mean=0.0152402;
+  values: 998.782 9.99394 10000
+  xvar: X 
+  yvar: Y 
+  xlabel: X position [cm]
+  ylabel: Y position [cm]
+  zvar: I
+  zlabel: Signal per bin
+  xylimits: -50 50 -50 50
+  variables: I I_err N
+end data
