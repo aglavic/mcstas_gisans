@@ -30,12 +30,15 @@
 *                 gives the number of BornAgain events generated
 *                 for a single unique incoming event.
 * ang_range: [°]  The angular range that will be calculated in the model.
+* model:          Name of python model file to use, "silica_100nm_air" or "hexagonal_spheres"
 *
 * %E
 *******************************************************************************/
 DEFINE COMPONENT BAclient
 
-SETTING PARAMETERS (int splits=102, double xwidth=0.01, double yheight=0.05, double ang_range=1.5 )
+SETTING PARAMETERS (int splits=102, double xwidth=0.01, double yheight=0.05, double ang_range=1.5,
+    string address = "127.0.0.1", string model = "silica_100nm_air"
+    )
 
 
 SHARE
@@ -57,11 +60,11 @@ void ClearWinSock() {
 #endif
 }
 
-int connect_socket(int splits, double ang_range)
+int connect_socket(int splits, double ang_range, const char *address, const char *model)
 {
     int status, valread, client_fd;
-    char handshake[29];
-    sprintf(handshake, "INIT;McStas;%06d;%08.5f\n", splits, ang_range);
+    char handshake[255];
+    sprintf(handshake, "INIT;McStas;%d;%.5f;%s\n", splits, ang_range, model);
     char buffer[1024] = { 0 };
 
     #if defined(_WIN32) || defined(_WIN64)
@@ -86,7 +89,7 @@ int connect_socket(int splits, double ang_range)
 	memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(15555);
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    serv_addr.sin_addr.s_addr = inet_addr(address);
 
     if ((status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0) {
         printf("    Connection Failed \n");
@@ -95,7 +98,7 @@ int connect_socket(int splits, double ang_range)
         return -1;
     }
 
-    send(client_fd, handshake, 28, 0);
+    send(client_fd, handshake, strlen(handshake), 0);
     printf("  Handshake message sent, ");
 
 // subtract 1 for the null
@@ -121,7 +124,7 @@ double tmp_p, tmp_x, tmp_y, tmp_z, tmp_vx, tmp_vy, tmp_vz, tmp_t;
 
 INITIALIZE
 %{
-client_fd = connect_socket(splits, ang_range);
+client_fd = connect_socket(splits, ang_range, address, model);
 sub_index = 0;
 %}
 

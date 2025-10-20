@@ -1,6 +1,8 @@
 DEFINE INSTRUMENT GISANS_test(
     double collimation = 10.0,
-    double source_size = 0.03
+    double source_size = 0.03,
+    double alpha_i = 0.3,
+    string address = "127.0.0.1"
 )
 
 DECLARE
@@ -29,9 +31,9 @@ COMPONENT ColdSource = Source_gen(
 COMPONENT total_in = L_monitor(filename="total_in.L", xmin=-0.1, xmax=0.1, ymin=-0.1, ymax=0.1, nL=20, Lmin=2, Lmax=22)
 AT (0, 0, collimation-0.1) RELATIVE origin
 
-SPLIT 123 COMPONENT test = BAclient(splits=123, ang_range=1.5)
+SPLIT 123 COMPONENT test = BAclient(splits=123, ang_range=1.0, address = address)
 AT (0, 0, collimation) RELATIVE origin
-ROTATED (89.85, 0, 0) RELATIVE origin
+ROTATED (90.0-alpha_i, 0, 0) RELATIVE origin
 
 COMPONENT total_out = L_monitor(filename="total_out.L", xmin=-0.1, xmax=0.1, ymin=-0.1, ymax=0.1, nL=20, Lmin=2, Lmax=22)
 AT (0, 0, collimation+0.1) RELATIVE origin

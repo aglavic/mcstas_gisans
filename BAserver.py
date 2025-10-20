@@ -17,7 +17,7 @@ import bornagain as ba
 from bornagain import deg, angstrom, nm
 from bornagain.numpyutil import Arrayf64Converter
 
-MFILE = "models.silica_100nm_air"
+MFILE = "models."
 
 V2L = 3956.034012 # m/s·Å
 ANGLE_RANGE=1.5 # degree scattering angle covered by detector
@@ -31,23 +31,25 @@ class BARunnerProcess(multiprocessing.Process):
     """
 
 
-    def __init__(self, odim=102, ang_range=ANGLE_RANGE):
+    def __init__(self, odim=102, ang_range=ANGLE_RANGE, ba_model="silica_100nm_air"):
         self.log = multiprocessing.Queue() # sends log-messages back to the main process
         self.input = multiprocessing.Queue()
         self.output = multiprocessing.Queue()
         self.ang_range=ang_range
+        self.ba_model=ba_model
         self.odim = odim # length of event stream to return per input
         super().__init__()
 
     def run(self):
-        self.log.put_nowait(f'Start long running computation on process {multiprocessing.current_process()}')
+        self.log.put_nowait((logging.INFO,
+                            f'Start long running computation on process {multiprocessing.current_process()}'))
         # detector dimension to create at least as many events as requested
         self.det_dim = int(np.sqrt(self.odim-3)+1)
-        self.log.put_nowait(f'  simulation detector size {self.det_dim}x{self.det_dim}')
-        sim_module = import_module(MFILE)
-        self.log.put_nowait(f'  loaded model {MFILE}')
-        Rzs = []
-        Rys = []
+        self.log.put_nowait((logging.INFO,
+                            f'  simulation detector size {self.det_dim}x{self.det_dim}'))
+        sim_module = import_module(MFILE+self.ba_model)
+        self.log.put_nowait((logging.INFO,
+                             f'  loaded model {MFILE+self.ba_model}'))
 
         while True:
             data = self.input.get()
@@ -106,7 +108,7 @@ class BARunnerProcess(multiprocessing.Process):
                 np.random.shuffle(out_events)
                 out_events = out_events[:self.odim-1]
             out = np.array([spec, trans]+out_events, dtype=EVENT_TYPE)
-            #self.log.put_nowait(f'  sending back {len(out)} processed events')
+            self.log.put_nowait((logging.DEBUG, f'  sending back {len(out)} processed events'))
             # convert numpy EVENT_TYPE events back to string
             mstrs = []
             for event in out:
@@ -142,7 +144,8 @@ async def handle_logging(proc):
     while proc.is_alive():
         while proc.log.empty():
             await asyncio.sleep(0.01)
-        logging.info(proc.log.get())
+        severity, message = proc.log.get()
+        logging.log(severity, message)
 
 EVENT_TYPE = np.dtype([
     ('p', np.float64),
@@ -151,32 +154,43 @@ EVENT_TYPE = np.dtype([
     ('vz', np.float64),
 ])
 
+async def read_full_request(client):
+    loop = asyncio.get_event_loop()
+    request = ''
+    while not request.endswith('\n'):
+        # read until next newline character
+        next = (await loop.sock_recv(client, 1)).decode('ascii')
+        if next=='':
+            return ''
+        request += next
+    return request
+
 async def handle_client(client):
     logging.info(f"Connection by client {client}")
     loop = asyncio.get_event_loop()
-    request = None
-    worker = None
+
+    # handshake with client and extract some simulation parameters
+    request = await read_full_request(client)
+    if request.startswith('INIT;McStas'):
+        _, _, odim, ang_range, *__ = request.split(';')
+        odim = int(odim)
+        ang_range = float(ang_range)
+        logging.info(f"From client '{request.strip()}', sending ACK")
+        await loop.sock_sendall(client, b'ACK\n')
+        worker = BARunnerProcess(odim, ang_range)
+        worker.start()
+        loop.create_task(handle_logging(worker))
+    else:
+        logging.warning(f"Could not establish handshake, client send {request}")
+        client.close()
+        return
+
+    # start loop waiting from incoming events
     recieved_events = 0
-    while True:
-        request = ''
-        while not request.endswith('\n'):
-            # read until next newline character
-            next = (await loop.sock_recv(client, 1)).decode('ascii')
-            if next == '':
-                worker.input.put('quit')
-                break
-            request += next
-        if next == '':
+    while request!='':
+        request = await read_full_request(client)
+        if request == '':
             break
-        if request.startswith('INIT;McStas'):
-            logging.info(f"From client '{request.strip()}', sending ACK")
-            odim = int(request.rsplit(';', 2)[-2])
-            ang_range = float(request.rsplit(';', 1)[-1])
-            await loop.sock_sendall(client, b'ACK\n')
-            worker = BARunnerProcess(odim, ang_range)
-            worker.start()
-            loop.create_task(handle_logging(worker))
-            continue
         event = np.array([tuple(request.split(';'))], dtype=EVENT_TYPE).view(np.rec.recarray)
         worker.input.put(event)
         recieved_events += 1
@@ -187,8 +201,10 @@ async def handle_client(client):
         await loop.sock_sendall(client, message.encode('ascii'))
 
         logging.debug(f'  all events send, waiting for next input...')
-    logging.info(f'Received {recieved_events} events')
+
+    worker.input.put('quit')
     worker.join()
+    logging.info(f'Received {recieved_events} events')
     client.close()
 
 async def run_server(interface='127.0.0.1', port=15555):
@@ -206,7 +222,12 @@ async def run_server(interface='127.0.0.1', port=15555):
 
 
 def main():
-    asyncio.run(run_server())
+    import sys
+    if len(sys.argv)>1:
+        interface = sys.argv[1]
+    else:
+        interface = '127.0.0.1'
+    asyncio.run(run_server(interface=interface))
 
 
 if __name__=='__main__':
