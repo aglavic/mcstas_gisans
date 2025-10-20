@@ -1,0 +1,172 @@
+/*******************************************************************************
+*
+* Component: BAclient
+*
+* %I
+* Written by: Artur Glavic
+* Date: October 2025
+* Origin: PSI
+*
+* Model GISANS/Off-specular sample using BornAgain.
+*
+* %D
+* A flat sample covert with a layer system simulated using DWBA with BornAgain.
+* This component is a client for the BAserver.py file. It sends events to
+* python using a socket connection and receives the simulated events back.
+* The component should be places with a SPLIT keyword and the number of splits
+* should be equal to the splits parameter.
+*
+* The surface of the sample lies in the X-Y plane with a size given by xwith/yheight.
+* Events that do not hit the surface of the sample area are just transmitted.
+*
+* Example: SPLIT 102 COMPONENT BAclient(splits=102, xwidth=0.02, yheight=0.05)
+*
+* %P
+* INPUT PARAMETERS:
+*
+* xwidth: [m]     width of mirror plate
+* yheight: [m]    height of mirror plate
+* splits: [1]     number of splits performed for this component,
+*                 gives the number of BornAgain events generated
+*                 for a single unique incoming event.
+* ang_range: [°]  The angular range that will be calculated in the model.
+*
+* %E
+*******************************************************************************/
+DEFINE COMPONENT BAclient
+
+SETTING PARAMETERS (int splits=102, double xwidth=0.01, double yheight=0.05, double ang_range=1.5 )
+
+
+SHARE
+%{
+#include <arpa/inet.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+int connect_socket(int splits, double ang_range)
+{
+    int status, valread, client_fd;
+    struct sockaddr_in serv_addr;
+    char handshake[29];
+    sprintf(handshake, "INIT;McStas;%06d;%08.5f\n", splits, ang_range);
+    char buffer[1024] = { 0 };
+    if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("\n Socket creation error \n");
+        return -1;
+    }
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(15555);
+
+    // Convert IPv4 and IPv6 addresses from text to binary
+    // form
+    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)
+        <= 0) {
+        printf(
+            "\nInvalid address/ Address not supported \n");
+        return -1;
+    }
+
+    if ((status
+         = connect(client_fd, (struct sockaddr*)&serv_addr,
+                   sizeof(serv_addr)))
+        < 0) {
+        printf("\nConnection Failed \n");
+        return -1;
+    }
+
+    send(client_fd, handshake, 28, 0);
+    printf("Handshake message sent, ");
+
+// subtract 1 for the null
+// terminator at the end
+    valread = recv(client_fd, buffer, 4, MSG_WAITALL);
+    printf("%s", buffer);
+
+    return client_fd;
+}
+%}
+
+DECLARE
+%{
+int client_fd;
+char event[255];
+// message uses fixed size 12 characters for each of the 8 values, 7; separators, newline, null
+char rec_event[4*16+3+2];
+int sub_index;
+
+int nres;
+double tmp_p, tmp_x, tmp_y, tmp_z, tmp_vx, tmp_vy, tmp_vz, tmp_t;
+%}
+
+INITIALIZE
+%{
+client_fd = connect_socket(splits, ang_range);
+sub_index = 0;
+%}
+
+TRACE
+%{
+char rec_event[4*16+3+2];
+double tmp_p, tmp_x, tmp_y, tmp_z, tmp_vx, tmp_vy, tmp_vz, tmp_t;
+
+/* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
+
+PROP_Z0;
+
+// only events that hit the sample are transmitted to the other process
+if ((fabs(x)<(xwidth/2)) & (fabs(y)<(yheight/2))) {
+    if (sub_index == 0) {
+        sprintf(event, "%e;%e;%e;%e\n", splits*p,vx,vy,vz);
+        //printf("%s", event);
+        send(client_fd, event, strlen(event), 0);
+    }
+
+    // read the exact message length
+    recv(client_fd, rec_event, 4*16+3+1, MSG_WAITALL);
+
+    nres = sscanf(rec_event, "%le;%le;%le;%le", &tmp_p, &tmp_vx, &tmp_vy, &tmp_vz);
+
+    SCATTER;
+
+    if (nres<4) {
+        // something went wrong when reading and interpreting socket data
+        printf("%d %s\n", nres, rec_event);
+    }
+
+    p=tmp_p;
+    vx=tmp_vx;
+    vy=tmp_vy;
+    vz=tmp_vz;
+
+    sub_index+=1;
+    if (sub_index==splits) {sub_index=0;}
+}
+
+%}
+
+FINALLY
+%{
+// closing the connected socket
+close(client_fd);
+
+%}
+
+MCDISPLAY
+%{
+  double xmax, xmin, ymax, ymin;
+
+  xmax= xwidth/2; xmin=-xmax;
+  ymax= yheight/2; ymin=-ymax;
+
+  polygon(5, (double)xmin, (double)ymin, 0.0,
+               (double)xmax, (double)ymin, 0.0,
+               (double)xmax, (double)ymax, 0.0,
+               (double)xmin, (double)ymax, 0.0,
+               (double)xmin, (double)ymin, 0.0);
+%}
+
+END

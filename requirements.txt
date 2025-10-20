@@ -1,0 +1,3 @@
+BornAgain==23.0
+matplotlib
+numpy
