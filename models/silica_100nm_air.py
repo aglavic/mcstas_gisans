@@ -39,7 +39,7 @@ def get_sample(phi_i=0.):
     layer_3 = ba.Layer(material_Silicon)
 
     # Define sample
-    sample = ba.MultiLayer()
+    sample = ba.Sample()
     sample.addLayer(layer_1)
     sample.addLayer(layer_2)
     sample.addLayer(layer_3)

@@ -1,5 +1,5 @@
 """
-Define the sample model to be used with events2BA.py
+Define the sample model to be used with BAserver.py
 See BornAgain documentation for the definition of the sample.
 """
 
@@ -65,7 +65,7 @@ def get_sample(phi=0.):
     layer_3 = ba.Layer(material_d2o)
 
     # Define sample
-    sample = ba.MultiLayer()
+    sample = ba.Sample()
     sample.addLayer(layer_1)
     sample.addLayer(layer_2)
     sample.addLayer(layer_3)
