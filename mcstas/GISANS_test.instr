@@ -1,5 +1,6 @@
 DEFINE INSTRUMENT GISANS_test(
-    double collimation = 20.0
+    double collimation = 10.0,
+    double source_size = 0.03
 )
 
 DECLARE
@@ -15,9 +16,15 @@ TRACE
 COMPONENT origin = Progress_bar()
   AT (0, 0, 0) RELATIVE ABSOLUTE
 
-COMPONENT source =   Source_simple(xwidth=0.05, yheight=0.05, dist=20.0,
-                    focus_xw=0.01, focus_yh=0.001, lambda0=10.0, dlambda=0.1)
+COMPONENT ColdSource = Source_gen(
+   yheight =  source_size, xwidth = source_size,
+   focus_xw = 0.01, focus_yh = 0.0008, dist = collimation,
+   lambda0 = 6.0, dlambda = 0.1,
+   T1=361.9,I1=7.22e13,
+   T2=159.0,I2=6.74e13,
+   T3=35.66,I3=6.435e13)
   AT (0, 0, 0) RELATIVE origin
+
 
 COMPONENT total_in = L_monitor(filename="total_in.L", xmin=-0.1, xmax=0.1, ymin=-0.1, ymax=0.1, nL=20, Lmin=2, Lmax=22)
 AT (0, 0, collimation-0.1) RELATIVE origin
@@ -32,7 +39,7 @@ AT (0, 0, collimation+0.1) RELATIVE origin
 COMPONENT detector = PSD_monitor(
     xmin=-0.5, xmax=0.5,
     ymin=-0.5, ymax=0.5,
-    nx=128, ny=128,
+    nx=256, ny=256,
     filename="detector.psd")
 AT (0, 0, 40) RELATIVE origin
 

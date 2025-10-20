@@ -17,7 +17,7 @@ import bornagain as ba
 from bornagain import deg, angstrom, nm
 from bornagain.numpyutil import Arrayf64Converter
 
-MFILE = "models.hexagonal_spheres"
+MFILE = "models.silica_100nm_air"
 
 V2L = 3956.034012 # m/s·Å
 ANGLE_RANGE=1.5 # degree scattering angle covered by detector
@@ -87,7 +87,7 @@ class BARunnerProcess(multiprocessing.Process):
             sim.options().setNumberOfThreads(1)
             res = sim.simulate()
             # get probability (intensity) for all pixels
-            pout = Arrayf64Converter.asNpArray(res.dataArray())
+            pout = Arrayf64Converter.asNpArray(res.dataArray())[::-1]
             # calculate beam angle relative to coordinate system, including incident beam direction
             #alpha_f = ANGLE_RANGE*(np.linspace(1., -1., self.det_dim)+Ry/(self.det_dim-1))
             xs = res.xAxis()
@@ -191,7 +191,7 @@ async def handle_client(client):
     worker.join()
     client.close()
 
-async def run_server(interface='localhost', port=15555):
+async def run_server(interface='127.0.0.1', port=15555):
     logging.info(f"Starting socket server on {interface}:{port}")
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((interface, port))
