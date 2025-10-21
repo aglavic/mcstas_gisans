@@ -59,13 +59,40 @@ This should open a browser windows where you can open the file.
 For Linux there is a bash script to run the simulations, `run_mcstas.sh`. For the reference
 BornAgain simulations one can sue `run_reference.sh`.
 
-Plot results
-------------
+Results
+=======
+
+Plots
+-----
 
 PlotMcStasResults.ipynb: IPython notebook plotting McStas results using the `mcstas_reader.py`
 module and matplotlib.
 
 Resulting images will be saved in the `plots` directory.
+
+Reference BornAgain
+-------------------
+Two models have been included and simulated directly using BornAgain with
+a wavelength spread and divergence as given by the SANS instrument geometry
+in McStas as well as the same incident intensity before the Sample.
+A 3-Layer hexagonal lattice of Sapphire spheres and a single layer of Silica spheres.
+
+![hexagonal_spheres_reference.png](plots/hexagonal_spheres_reference.png)
+![silica_100nm_air_reference.png](plots/silica_100nm_air_reference.png)
+
+McStas integration
+------------------
+The same models were simulated with McStas using event-by-event BornAgain simulation.
+Resolution effects follow directly from the McStas incident beam distribution.
+
+Each simulation uses 1000 incident particles that are split 443 times at the sample.
+
+![hexagonal_spheres_mcstas.png](./plots/hexagonal_spheres_mcstas.png)
+![silica_100nm_air_mcstas.png](plots/silica_100nm_air_mcstas.png)
+
+Comparison with the plane BornAgain simulation shows that the scattering intensity is
+properly preserved for all examples, event with modest incoming beam statistics.
+For real instrument simulations the statistics can easily be increased by 10x.
 
 Limitations
 ===========

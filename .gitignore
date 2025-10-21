@@ -8,4 +8,6 @@
 *.zip
 __pycache__
 venv
-mcstas/output
+mcstas/hexagonal_spheres_*
+mcstas/silica_100nm_air_*
+ba_output
