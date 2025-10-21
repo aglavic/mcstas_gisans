@@ -43,9 +43,11 @@ Server
 
 Start the BornAgain simulation service using python:
 
-    ```python BAserver.py```
+```bash
+python BAserver.py
+```
 
-This creates a local service waiting for McStas to send events for simulation.
+This creates a local service waiting for McStas to send events for simulations.
 
 Client
 ------
@@ -54,10 +56,16 @@ For an installation on Windows as described above, the jupyter notebook `Execute
 be executed using the newly created anaconda environment with `jupyter notebook`.
 This should open a browser windows where you can open the file.
 
-Otherwise you will need to manually run McStas:
+For Linux there is a bash script to run the simulations, `run_mcstas.sh`. For the reference
+BornAgain simulations one can sue `run_reference.sh`.
 
-- mcstas/GISANS_test.instr 
-- PlotMcStasResults.ipynb: IPython notebook plotting McStas results
+Plot results
+------------
+
+PlotMcStasResults.ipynb: IPython notebook plotting McStas results using the `mcstas_reader.py`
+module and matplotlib.
+
+Resulting images will be saved in the `plots` directory.
 
 Limitations
 ===========
