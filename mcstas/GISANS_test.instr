@@ -2,15 +2,22 @@ DEFINE INSTRUMENT GISANS_test(
     double collimation = 10.0,
     double source_size = 0.03,
     double alpha_i = 0.3,
+    double wavelength = 6.0,
+    double resolution = 0.1,
+    string model = "silica_100nm_air",
     string address = "127.0.0.1"
 )
 
 DECLARE
 %{
+double vertical_projection;
+double sample_width = 0.01;
+double sample_length = 0.05;
 %}
 
 INITIALIZE
 %{
+vertical_projection = sample_length*sin(alpha_i*DEG2RAD);
 %}
 
 TRACE
@@ -18,24 +25,45 @@ TRACE
 COMPONENT origin = Progress_bar()
   AT (0, 0, 0) RELATIVE ABSOLUTE
 
+// A source modeling a standard SANS collimation with a 'source_size' rectangular cross-section
+// at 'collimation' distance to the sample. The source focusses on the projected sample size
+// so all beams should hit the sample.
 COMPONENT ColdSource = Source_gen(
    yheight =  source_size, xwidth = source_size,
-   focus_xw = 0.01, focus_yh = 0.0008, dist = collimation,
-   lambda0 = 6.0, dlambda = 0.1,
+   focus_xw = sample_width, focus_yh = vertical_projection*0.9, dist = collimation,
+   lambda0 = wavelength, dlambda = wavelength*resolution/2.0,
    T1=361.9,I1=7.22e13,
    T2=159.0,I2=6.74e13,
    T3=35.66,I3=6.435e13)
   AT (0, 0, 0) RELATIVE origin
 
 
-COMPONENT total_in = L_monitor(filename="total_in.L", xmin=-0.1, xmax=0.1, ymin=-0.1, ymax=0.1, nL=20, Lmin=2, Lmax=22)
+COMPONENT total_in = L_monitor(filename="total_in.L",
+    xmin=-0.1, xmax=0.1,
+    ymin=-0.1, ymax=0.1,
+    nL=20, Lmin=2, Lmax=22)
 AT (0, 0, collimation-0.1) RELATIVE origin
 
-SPLIT 123 COMPONENT test = BAclient(splits=123, ang_range=1.0, address = address)
+// simulate an 21x21 grid at once (441 + specular + transmitted)
+SPLIT 443 COMPONENT sample = BAclient(
+    splits=443, ang_range=30.0/collimation, address=address, model=model,
+    xwidth=sample_width, yheight=sample_length)
 AT (0, 0, collimation) RELATIVE origin
 ROTATED (90.0-alpha_i, 0, 0) RELATIVE origin
 
-COMPONENT total_out = L_monitor(filename="total_out.L", xmin=-0.1, xmax=0.1, ymin=-0.1, ymax=0.1, nL=20, Lmin=2, Lmax=22)
+COMPONENT det_axis = Arm()
+AT (0, 0, collimation) RELATIVE origin
+ROTATED (0, 0, 0) RELATIVE origin
+//ROTATED (-2*alpha_i, 0, 0) RELATIVE origin // in case the detector should follow the specular
+
+// There will be more neutron weight coming out of the sample then entering,
+// this is a result of the DWBA approximation assuming no scattering losses.
+// Thus the specular+transmitted should be the incoming weight and the scattered
+// will be added.
+COMPONENT total_out = L_monitor(filename="total_out.L",
+    xmin=-0.1, xmax=0.1,
+    ymin=-0.1, ymax=0.1,
+    nL=20, Lmin=2, Lmax=22)
 AT (0, 0, collimation+0.1) RELATIVE origin
 
 COMPONENT detector = PSD_monitor(
@@ -43,6 +71,6 @@ COMPONENT detector = PSD_monitor(
     ymin=-0.5, ymax=0.5,
     nx=256, ny=256,
     filename="detector.psd")
-AT (0, 0, 40) RELATIVE origin
+AT (0, 0, collimation) RELATIVE det_axis
 
 END

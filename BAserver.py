@@ -89,7 +89,7 @@ class BARunnerProcess(multiprocessing.Process):
             sim.options().setNumberOfThreads(1)
             res = sim.simulate()
             # get probability (intensity) for all pixels
-            pout = Arrayf64Converter.asNpArray(res.dataArray())[::-1]
+            pout = Arrayf64Converter.asNpArray(res.dataArray())
             # calculate beam angle relative to coordinate system, including incident beam direction
             #alpha_f = ANGLE_RANGE*(np.linspace(1., -1., self.det_dim)+Ry/(self.det_dim-1))
             xs = res.xAxis()
@@ -97,7 +97,7 @@ class BARunnerProcess(multiprocessing.Process):
             alpha_f = np.array([ys.binCenter(i) for i in range(ys.size())])
             phi_f = np.array([xs.binCenter(i) for i in range(ys.size())])-phi_i*deg
 
-            VX, VZ= np.meshgrid(phi_f*v, alpha_f*v)
+            VX, VZ= np.meshgrid(np.sin(phi_f)*v, -np.sin(alpha_f)*v)
             VY = np.sqrt(v**2 - VX**2 - VZ**2)
             for pouti, vxi, vyi, vzi in zip(pout.flatten(), VX.flatten(), VY.flatten(), VZ.flatten()):
                 out_events.append((pouti, vxi, vyi, vzi))
@@ -125,8 +125,8 @@ class BARunnerProcess(multiprocessing.Process):
         """
         beam = ba.Beam(p, wavelength*angstrom, alpha_i*deg)
 
-        dRy = Ry*self.ang_range*deg/(self.det_dim-1)
-        dRz = Rz*self.ang_range*deg/(self.det_dim-1)
+        dRy = Ry*self.ang_range*deg/(self.det_dim)
+        dRz = Rz*self.ang_range*deg/(self.det_dim)
 
         # Define detector
         detector = ba.SphericalDetector(self.det_dim, -self.ang_range*deg+dRz, self.ang_range*deg+dRz,
@@ -172,12 +172,12 @@ async def handle_client(client):
     # handshake with client and extract some simulation parameters
     request = await read_full_request(client)
     if request.startswith('INIT;McStas'):
-        _, _, odim, ang_range, *__ = request.split(';')
+        _, _, odim, ang_range, ba_model, *__ = request.split(';')
         odim = int(odim)
         ang_range = float(ang_range)
         logging.info(f"From client '{request.strip()}', sending ACK")
         await loop.sock_sendall(client, b'ACK\n')
-        worker = BARunnerProcess(odim, ang_range)
+        worker = BARunnerProcess(odim, ang_range, ba_model.strip())
         worker.start()
         loop.create_task(handle_logging(worker))
     else:

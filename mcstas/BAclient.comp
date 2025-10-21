@@ -138,7 +138,7 @@ double tmp_p, tmp_x, tmp_y, tmp_z, tmp_vx, tmp_vy, tmp_vz, tmp_t;
 PROP_Z0;
 
 // only events that hit the sample are transmitted to the other process
-if ((fabs(x)<(xwidth/2)) & (fabs(y)<(yheight/2))) {
+if ((fabs(x)<=(xwidth/2)) & (fabs(y)<=(yheight/2))) {
     if (sub_index == 0) {
         sprintf(event, "%e;%e;%e;%e\n", splits*p,vx,vy,vz);
         //printf("%s", event);
