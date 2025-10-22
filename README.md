@@ -94,6 +94,18 @@ Comparison with the plane BornAgain simulation shows that the scattering intensi
 properly preserved for all examples, event with modest incoming beam statistics.
 For real instrument simulations the statistics can easily be increased by 10x.
 
+BornAgain Models
+================
+
+The models are stored as python modules in the `models` folder. They are referenced
+from McStas using their name (without `.py` suffix).
+To create your own BornAgain models for this simulation, only the `get_sample` function
+is required. (Optionally with a phi_i parameter to rotate e.g. lattices.)
+
+From a GUI project the python code can directly be extracted in the `Sample` tab and
+saved into a python file (text file with `.py` suffix).
+An example is the `interference_2d_paracrystl` model from the BornAgain examples list.
+
 Limitations
 ===========
 

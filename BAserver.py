@@ -69,7 +69,11 @@ class BARunnerProcess(multiprocessing.Process):
             wavelength = V2L / v  # Å
             #self.log.put_nowait(f'  incident beam {alpha_i}°, {phi_i}°, {wavelength}')
 
-            self.sample = sim_module.get_sample(phi_i)
+            try:
+                self.sample = sim_module.get_sample(phi_i)
+            except TypeError:
+                # assume model is defined without phi_i dependence
+                self.sample = sim_module.get_sample()
 
             # Calculated reflected and transmitted (1-reflected) beams
             ssim = self.get_simulation_specular(wavelength, alpha_i)

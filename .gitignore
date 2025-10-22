@@ -10,4 +10,5 @@ __pycache__
 venv
 mcstas/hexagonal_spheres_*
 mcstas/silica_100nm_air_*
+mcstas/interference_2d_paracrystal_*
 ba_output
